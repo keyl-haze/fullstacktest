@@ -23,20 +23,19 @@ use App\Models\User;
 class UserCrudController extends Controller
 {
     /**
-     * Initialize controller middleware for authentication and admin access.
-     * All CRUD operations require admin role.
+     * Initialize controller.
+     * Middleware applied via routes instead of constructor.
      */
     public function __construct()
     {
-        $this->middleware('auth');
-        $this->middleware('admin')->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+        // No middleware here - applied in routes/web.php
     }
 
     /**
      * Display a listing of all users.
      * Only accessible to admin users via middleware.
      * 
-     * @return \Inertia\Response
+     * @return \Inertia\Response|\Illuminate\Http\RedirectResponse
      */
     public function index()
     {
@@ -131,7 +130,7 @@ class UserCrudController extends Controller
      * XSS protection applied to all output using e() helper.
      * 
      * @param  int  $id User ID to edit
-     * @return \Inertia\Response
+     * @return \Inertia\Response|\Illuminate\Http\RedirectResponse
      */
     public function edit($id)
     {
