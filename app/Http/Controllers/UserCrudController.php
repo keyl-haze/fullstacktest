@@ -115,7 +115,7 @@ class UserCrudController extends Controller
             $hashedPassword = Hash::make($validated['password']);
             
             // Use prepared statements with parameterized queries for SQL injection prevention
-            $query = 'INSERT INTO users (name, email, password, role, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())';
+            $query = 'INSERT INTO users (name, email, password, role, created_at, updated_at) VALUES (?, ?, ?, ?, datetime("now"), datetime("now"))';
             Log::info('Executing insert query', ['query' => $query, 'params' => [$validated['name'], $validated['email'], '***', $validated['role']]]);
             
             DB::insert($query, [
@@ -188,6 +188,8 @@ class UserCrudController extends Controller
     public function update(Request $request, $id)
     {
         try {
+            Log::info('Update user request received', ['id' => $id, 'data' => $request->all()]);
+            
             // Validate input with user-friendly error messages
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
@@ -202,6 +204,8 @@ class UserCrudController extends Controller
                 'role.in' => 'Invalid role selected.',
             ]);
 
+            Log::info('Validation passed', ['validated' => $validated]);
+
             // Check if user exists before attempting update
             $user = DB::selectOne('SELECT * FROM users WHERE id = ?', [$id]);
             if (!$user) {
@@ -209,18 +213,25 @@ class UserCrudController extends Controller
             }
 
             // Use PDO prepared statements to prevent SQL injection
-            DB::update('UPDATE users SET name = ?, email = ?, role = ?, updated_at = NOW() WHERE id = ?', [
+            DB::update('UPDATE users SET name = ?, email = ?, role = ?, updated_at = datetime("now") WHERE id = ?', [
                 $validated['name'],
                 $validated['email'],
                 $validated['role'],
                 $id,
             ]);
 
+            Log::info('User updated successfully', ['id' => $id]);
+
             return redirect()->route('users.index')->with('success', 'User updated successfully!');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::warning('Validation failed', ['errors' => $e->errors()]);
+            return back()->withErrors($e->errors());
         } catch (\Illuminate\Database\QueryException $e) {
-            return back()->with('error', 'Database error: Unable to update user. Please try again.');
+            Log::error('Database error during user update', ['error' => $e->getMessage()]);
+            return back()->with('error', 'Database error: ' . $e->getMessage());
         } catch (\Exception $e) {
-            return back()->with('error', 'An unexpected error occurred. Please try again.');
+            Log::error('Unexpected error during user update', ['error' => $e->getMessage()]);
+            return back()->with('error', 'An unexpected error occurred: ' . $e->getMessage());
         }
     }
 
@@ -242,6 +253,8 @@ class UserCrudController extends Controller
     public function destroy($id)
     {
         try {
+            Log::info('Delete user request received', ['id' => $id]);
+            
             // Prevent accidental deletion of the current admin user's own account
             if ($id == Auth::id()) {
                 return redirect()->route('users.index')->with('error', 'You cannot delete your own account.');
@@ -256,11 +269,15 @@ class UserCrudController extends Controller
             // Use PDO prepared statements for SQL injection prevention
             DB::delete('DELETE FROM users WHERE id = ?', [$id]);
             
+            Log::info('User deleted successfully', ['id' => $id]);
+            
             return redirect()->route('users.index')->with('success', 'User deleted successfully!');
         } catch (\Illuminate\Database\QueryException $e) {
-            return redirect()->route('users.index')->with('error', 'Database error: Unable to delete user. Please try again.');
+            Log::error('Database error during user deletion', ['error' => $e->getMessage()]);
+            return redirect()->route('users.index')->with('error', 'Database error: ' . $e->getMessage());
         } catch (\Exception $e) {
-            return redirect()->route('users.index')->with('error', 'An unexpected error occurred. Please try again.');
+            Log::error('Unexpected error during user deletion', ['error' => $e->getMessage()]);
+            return redirect()->route('users.index')->with('error', 'An unexpected error occurred: ' . $e->getMessage());
         }
     }
 }

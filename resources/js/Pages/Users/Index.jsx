@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 
 /**
  * User Management Dashboard
@@ -8,6 +8,12 @@ import { Link, usePage } from '@inertiajs/react';
  */
 export default function Index({ users, userRole }) {
     const { flash } = usePage().props;
+
+    const handleDelete = (userId) => {
+        if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+            router.delete(route('users.destroy', userId));
+        }
+    };
 
     return (
         <div className="max-w-6xl mx-auto py-8 px-4">
@@ -77,14 +83,12 @@ export default function Index({ users, userRole }) {
                                     </td>
                                     <td className="px-6 py-4 text-sm space-x-3">
                                         <Link href={route('users.edit', user.id)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</Link>
-                                        <form method="POST" action={route('users.destroy', user.id)} style={{ display: 'inline' }} onSubmit={e => {
-                                            if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-                                                e.preventDefault();
-                                            }
-                                        }}>
-                                            <input type="hidden" name="_method" value="DELETE" />
-                                            <button type="submit" className="text-red-600 hover:text-red-800 font-medium">Delete</button>
-                                        </form>
+                                        <button 
+                                            onClick={() => handleDelete(user.id)}
+                                            className="text-red-600 hover:text-red-800 font-medium cursor-pointer border-none bg-transparent p-0"
+                                        >
+                                            Delete
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
