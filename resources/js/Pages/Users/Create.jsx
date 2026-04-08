@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useForm, Link, usePage } from '@inertiajs/react';
+import { useForm, Link, usePage, router } from '@inertiajs/react';
 
 /**
  * Create User Form Component
@@ -7,7 +7,7 @@ import { useForm, Link, usePage } from '@inertiajs/react';
  * Server-side validation handles security and uniqueness checks
  */
 export default function Create() {
-    const { flash } = usePage().props;
+    const { flash, errors: pageErrors } = usePage().props;
     const [passwordStrength, setPasswordStrength] = useState(0);
     
     const { data, setData, post, processing, errors } = useForm({
@@ -58,7 +58,16 @@ export default function Create() {
             return;
         }
 
-        post(route('users.store'));
+        post(route('users.store'), {
+            onSuccess: (page) => {
+                // Only navigate if there are no validation errors
+                if (!page.props.errors || Object.keys(page.props.errors).length === 0) {
+                    setTimeout(() => {
+                        router.visit(route('users.index'));
+                    }, 500);
+                }
+            },
+        });
     }
 
     const strengthLabels = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
@@ -73,6 +82,18 @@ export default function Create() {
                 {flash?.error && (
                     <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm">
                         {flash.error}
+                    </div>
+                )}
+
+                {/* Display any validation errors from the server */}
+                {Object.keys(pageErrors).length > 0 && (
+                    <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm">
+                        <p className="font-semibold mb-2">Validation Errors:</p>
+                        <ul className="list-disc list-inside">
+                            {Object.entries(pageErrors).map(([field, message]) => (
+                                <li key={field}>{message}</li>
+                            ))}
+                        </ul>
                     </div>
                 )}
 

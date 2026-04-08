@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use App\Models\User;
 
@@ -88,6 +89,8 @@ class UserCrudController extends Controller
     public function store(Request $request)
     {
         try {
+            Log::info('Store user request received', ['data' => $request->all()]);
+            
             // Server-side validation with custom user-friendly error messages
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
@@ -106,22 +109,34 @@ class UserCrudController extends Controller
                 'role.in' => 'Invalid role selected.',
             ]);
 
+            Log::info('Validation passed', ['validated' => $validated]);
+
             // Securely hash password using Laravel's Hash facade (bcrypt algorithm)
             $hashedPassword = Hash::make($validated['password']);
             
             // Use prepared statements with parameterized queries for SQL injection prevention
-            DB::insert('INSERT INTO users (name, email, password, role, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())', [
+            $query = 'INSERT INTO users (name, email, password, role, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())';
+            Log::info('Executing insert query', ['query' => $query, 'params' => [$validated['name'], $validated['email'], '***', $validated['role']]]);
+            
+            DB::insert($query, [
                 $validated['name'],
                 $validated['email'],
                 $hashedPassword,
                 $validated['role'],
             ]);
+            
+            Log::info('User created successfully', ['email' => $validated['email']]);
 
             return redirect()->route('users.index')->with('success', 'User created successfully!');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::warning('Validation failed', ['errors' => $e->errors()]);
+            return back()->withErrors($e->errors());
         } catch (\Illuminate\Database\QueryException $e) {
-            return back()->with('error', 'Database error: Unable to create user. Please try again.');
+            Log::error('Database error during user creation', ['error' => $e->getMessage()]);
+            return back()->with('error', 'Database error: ' . $e->getMessage());
         } catch (\Exception $e) {
-            return back()->with('error', 'An unexpected error occurred. Please try again.');
+            Log::error('Unexpected error during user creation', ['error' => $e->getMessage()]);
+            return back()->with('error', 'An unexpected error occurred: ' . $e->getMessage());
         }
     }
 
