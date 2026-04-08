@@ -17,6 +17,16 @@ export default function Index({ users, userRole }) {
 
     return (
         <div className="max-w-6xl mx-auto py-8 px-4">
+            {/* Back to Dashboard Button */}
+            <div className="mb-6">
+                <Link href={route('dashboard')} className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Back to Dashboard
+                </Link>
+            </div>
+
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
                 <p className="text-gray-600">Manage system users and their roles</p>
